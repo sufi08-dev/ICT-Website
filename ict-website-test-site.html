@@ -3,7 +3,20 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="color-scheme" content="light" />
+<meta name="color-scheme" content="light dark" />
+<script>
+/* Set the theme before first paint: saved choice wins, else the system preference. */
+(function(){
+  var t = "light";
+  try {
+    t = localStorage.getItem("crown-heist-theme") || "";
+    if (t !== "dark" && t !== "light") {
+      t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+  } catch (e) { t = "light"; }
+  document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
 <link rel="icon" href="data:," />
 <title>The Ancient Crown Heist — ICT Open Ended Lab 1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,6 +29,8 @@
     --bg-2:#fbf8f1;
     --bg-3:#f6f0e0;
     --panel:#ffffff;
+    --solid:#ffffff;
+    --nav-bg:rgba(255,255,255,.92);
     --line:rgba(169,132,32,.45);
     --line-soft:rgba(60,48,16,.12);
     --gold:#a9831c;
@@ -26,6 +41,23 @@
     --ink-faint:#8d8471;
     --radius:10px;
   }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#171512;
+    --bg-2:#1e1b16;
+    --bg-3:#2b2517;
+    --panel:#201d18;
+    --solid:#26221a;
+    --nav-bg:rgba(23,21,18,.92);
+    --line:rgba(201,162,39,.5);
+    --line-soft:rgba(235,220,175,.14);
+    --gold:#d4af37;
+    --gold-fill:#c9a227;
+    --gold-deep:#e3c565;
+    --ink:#f2ecdd;
+    --ink-dim:#c9c2b0;
+    --ink-faint:#9d9582;
+  }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{
@@ -33,6 +65,7 @@
     font-family:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
     font-size:16px;line-height:1.65;
     -webkit-font-smoothing:antialiased;
+    transition:background-color .35s ease,color .35s ease;
   }
   h1,h2,h3,.display{font-family:"Cinzel",serif;line-height:1.15;margin:0}
   a{color:var(--gold-deep)}
@@ -44,14 +77,14 @@
     position:fixed;inset:0 0 auto 0;z-index:60;
     display:flex;align-items:center;justify-content:space-between;gap:16px;
     padding:14px clamp(16px,4vw,44px);
-    background:rgba(255,255,255,.92);
+    background:var(--nav-bg);
     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     border-bottom:1px solid var(--line-soft);
   }
   .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
   .brand-mark{
     width:38px;height:38px;flex:0 0 38px;border:1px solid var(--line);border-radius:50%;
-    display:grid;place-items:center;color:var(--gold);background:#fff;
+    display:grid;place-items:center;color:var(--gold);background:var(--solid);
   }
   .brand-mark svg{width:20px;height:20px;display:block}
   .brand-text{line-height:1.2}
@@ -66,6 +99,35 @@
   @media (max-width:640px){
     .brand-text span{display:none}
     .nav-links a{padding:7px 9px;font-size:13px}
+  }
+
+  /* ---------- Rope dark-mode toggle ---------- */
+  .nav-right{display:flex;align-items:flex-start;gap:6px}
+  .rope-toggle{
+    --cord:17px;
+    position:relative;flex:0 0 auto;align-self:flex-start;
+    width:30px;height:44px;margin:-14px 0 0;padding:0;
+    background:transparent;border:none;cursor:pointer;color:var(--gold);
+    -webkit-tap-highlight-color:transparent;
+  }
+  :root[data-theme="dark"] .rope-toggle{--cord:30px}
+  .rope-cord{
+    position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:2px;height:var(--cord);border-radius:2px;
+    background:repeating-linear-gradient(180deg,var(--gold) 0 3px,var(--gold-deep) 3px 6px);
+    transition:height .5s cubic-bezier(.34,1.45,.64,1);
+  }
+  .rope-handle{
+    position:absolute;top:var(--cord);left:50%;transform:translate(-50%,-1px);
+    width:13px;height:13px;border-radius:50%;
+    background:var(--gold-fill);border:2px solid var(--gold-deep);
+    box-shadow:0 1px 4px rgba(60,48,16,.35);
+    transition:top .5s cubic-bezier(.34,1.45,.64,1),transform .2s ease;
+  }
+  .rope-toggle:hover .rope-handle{transform:translate(-50%,-1px) scale(1.18)}
+  .rope-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+  .nav,.work-card,.member-card,.profile-card,.profile-box,.contact-box,.fact-list,.chip,.brand-mark,.hero-badge{
+    transition:background-color .35s ease,border-color .35s ease;
   }
 
   /* ---------- Layout ---------- */
@@ -89,7 +151,7 @@
   .hero-badge{
     display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);
     border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;letter-spacing:.1em;
-    text-transform:uppercase;color:var(--gold-deep);background:#fff;
+    text-transform:uppercase;color:var(--gold-deep);background:var(--solid);
   }
   .hero-badge i{width:7px;height:7px;border-radius:50%;background:var(--gold-fill);display:block}
   .hero h1{font-size:clamp(44px,7.4vw,82px);font-weight:800;margin:26px 0 0;letter-spacing:.005em}
@@ -180,7 +242,7 @@
   .tool-chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
   .chip{
     border:1px solid var(--line);color:var(--gold-deep);border-radius:999px;padding:6px 14px;
-    font-size:13.5px;font-weight:700;background:#fff;
+    font-size:13.5px;font-weight:700;background:var(--solid);
   }
 
   /* ---------- Team ---------- */
@@ -244,7 +306,7 @@
   }
   .linkedin-btn:hover{background:var(--gold);border-color:var(--gold)}
   .linkedin-mark{
-    display:inline-grid;place-items:center;width:22px;height:22px;border-radius:5px;background:#fff;color:var(--gold-deep);
+    display:inline-grid;place-items:center;width:22px;height:22px;border-radius:5px;background:var(--solid);color:var(--gold-deep);
     font-size:12px;font-weight:800;line-height:1;flex:0 0 22px;
   }
   .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:36px}
@@ -277,6 +339,8 @@
     html{scroll-behavior:auto}
     .reveal{opacity:1}
     .member-card,.btn{transition:none}
+    .rope-cord,.rope-handle{transition:none}
+    body{transition:none}
   }
 </style>
 </head>
@@ -293,11 +357,17 @@
         <span>ICT Open Ended Lab 1</span>
       </span>
     </a>
-    <div class="nav-links">
-      <a href="#home">Home</a>
-      <a href="#work">Work</a>
-      <a href="#about">About</a>
-      <a href="#team">Team</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#work">Work</a>
+        <a href="#about">About</a>
+        <a href="#team">Team</a>
+      </div>
+      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode" title="Toggle dark mode">
+        <span class="rope-cord" aria-hidden="true"></span>
+        <span class="rope-handle" aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
@@ -496,8 +566,14 @@
         <span>ICT Open Ended Lab 1</span>
       </span>
     </a>
-    <div class="nav-links">
-      <a href="#team" data-back>← Back to Team</a>
+    <div class="nav-right">
+      <div class="nav-links">
+        <a href="#team" data-back>← Back to Team</a>
+      </div>
+      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode" title="Toggle dark mode">
+        <span class="rope-cord" aria-hidden="true"></span>
+        <span class="rope-handle" aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 
@@ -583,6 +659,23 @@
 (function(){
   "use strict";
   var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- Dark mode rope toggle ---------------- */
+  var rootEl = document.documentElement;
+  var ropeToggles = document.querySelectorAll(".rope-toggle");
+  function syncRopes(){
+    var dark = rootEl.getAttribute("data-theme") === "dark";
+    ropeToggles.forEach(function(btn){ btn.setAttribute("aria-pressed", dark ? "true" : "false"); });
+  }
+  ropeToggles.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var next = rootEl.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      rootEl.setAttribute("data-theme", next);
+      try { localStorage.setItem("crown-heist-theme", next); } catch (e) {}
+      syncRopes();
+    });
+  });
+  syncRopes();
 
   /* ---------------- Team data (facts from the project record) ---------------- */
   var TEAM = [
