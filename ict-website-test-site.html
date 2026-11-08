@@ -334,12 +334,33 @@
     color:var(--ink-faint);font-size:13px;
   }
 
+  /* ---------- Custom cursor (script-enabled, fine pointers only) ---------- */
+  .cursor-dot,.cursor-ring{
+    position:fixed;top:0;left:0;pointer-events:none;z-index:9999;display:none;
+    opacity:0;transition:opacity .25s ease;will-change:transform;
+  }
+  @media (pointer: fine){
+    html.has-custom-cursor,html.has-custom-cursor *{cursor:none !important}
+    html.has-custom-cursor .cursor-dot,html.has-custom-cursor .cursor-ring{display:block}
+  }
+  .cursor-dot{width:6px;height:6px}
+  .cursor-dot-core{width:100%;height:100%;border-radius:50%;background:var(--gold-fill)}
+  .cursor-ring{width:32px;height:32px}
+  .cursor-ring-inner{
+    width:100%;height:100%;border-radius:50%;
+    border:1px solid var(--gold);opacity:.7;
+    transition:transform .25s ease,opacity .25s ease,background-color .25s ease;
+  }
+  .cursor-dot.is-on,.cursor-ring.is-on{opacity:1}
+  .cursor-ring.is-hover .cursor-ring-inner{transform:scale(1.5);opacity:1;background:rgba(201,162,39,.08)}
+
   .reveal{opacity:0}
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto}
     .reveal{opacity:1}
     .member-card,.btn{transition:none}
     .rope-cord,.rope-handle{transition:none}
+    .cursor-dot,.cursor-ring,.cursor-ring-inner{transition:none}
     body{transition:none}
   }
 </style>
@@ -835,6 +856,93 @@
   } else {
     document.querySelectorAll(".reveal, [data-hero]").forEach(function(el){ el.style.opacity = 1; });
   }
+
+  /* ---------------- Custom cursor (fine pointers only) ----------------
+     Desktop-only: on touch devices nothing is created and the native
+     cursor is untouched. The native cursor is hidden (via the
+     has-custom-cursor class) only after this code runs successfully,
+     so with JavaScript off or any failure the system cursor stays. */
+  (function initCursor(){
+    try {
+      if (!window.matchMedia || !window.matchMedia("(pointer: fine)").matches) return;
+
+      var dot = document.createElement("div");
+      dot.className = "cursor-dot";
+      dot.setAttribute("aria-hidden", "true");
+      var dotCore = document.createElement("div");
+      dotCore.className = "cursor-dot-core";
+      dot.appendChild(dotCore);
+
+      var ring = document.createElement("div");
+      ring.className = "cursor-ring";
+      ring.setAttribute("aria-hidden", "true");
+      var ringInner = document.createElement("div");
+      ringInner.className = "cursor-ring-inner";
+      ring.appendChild(ringInner);
+
+      document.body.appendChild(ring);
+      document.body.appendChild(dot);
+      rootEl.classList.add("has-custom-cursor");
+
+      var mx = -100, my = -100, rx = -100, ry = -100, shown = false;
+      var interactiveSel = "a, button, input, select, textarea, label, [role='button']";
+
+      function place(el, x, y){
+        el.style.transform = "translate3d(" + x + "px," + y + "px,0) translate(-50%,-50%)";
+      }
+      function setShown(on){
+        shown = on;
+        dot.classList.toggle("is-on", on);
+        ring.classList.toggle("is-on", on);
+        if (!on) ring.classList.remove("is-hover");
+      }
+
+      document.addEventListener("mousemove", function(e){
+        mx = e.clientX; my = e.clientY;
+        if (!shown){
+          rx = mx; ry = my;
+          place(ring, rx, ry);
+          setShown(true);
+        }
+        place(dot, mx, my);
+        if (reduced){
+          rx = mx; ry = my;
+          place(ring, rx, ry);
+        }
+      }, {passive: true});
+
+      document.addEventListener("mouseover", function(e){
+        var t = e.target;
+        if (t && t.tagName === "IFRAME"){
+          /* Over an embedded video the browser shows its own cursor;
+             hide the custom one until the pointer leaves the frame. */
+          dot.classList.remove("is-on");
+          ring.classList.remove("is-on");
+          ring.classList.remove("is-hover");
+          return;
+        }
+        if (shown){
+          dot.classList.add("is-on");
+          ring.classList.add("is-on");
+        }
+        var hit = (t && t.closest) ? t.closest(interactiveSel) : null;
+        ring.classList.toggle("is-hover", !!hit);
+      });
+
+      document.documentElement.addEventListener("mouseleave", function(){ setShown(false); });
+
+      if (!reduced){
+        (function loop(){
+          rx += (mx - rx) * 0.16;
+          ry += (my - ry) * 0.16;
+          if (shown) place(ring, rx, ry);
+          requestAnimationFrame(loop);
+        })();
+      }
+    } catch (err) {
+      rootEl.classList.remove("has-custom-cursor");
+    }
+  })();
 
   route();
 })();
