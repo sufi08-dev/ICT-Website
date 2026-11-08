@@ -17,6 +17,34 @@
   document.documentElement.setAttribute("data-theme", t);
 })();
 </script>
+<script>
+/* Reload reset: when the page is reloaded/refreshed, always restart on the
+   home page — drop any profile (#/team/...) or section (#team, ...) hash
+   from the address and stop the browser restoring the old scroll position,
+   so the site opens on the hero at the very top with a clean URL.
+   This runs in the head, before the router below reads the hash.
+   A fresh visit is untouched: shared profile and section links still open
+   exactly where they point; only an actual reload resets to home. */
+(function(){
+  try {
+    var isReload = false;
+    if (window.performance && performance.getEntriesByType) {
+      var entries = performance.getEntriesByType("navigation");
+      if (entries && entries.length) isReload = entries[0].type === "reload";
+    }
+    if (!isReload && window.performance && performance.navigation) {
+      /* Legacy fallback for older browsers. */
+      isReload = performance.navigation.type === 1;
+    }
+    if (!isReload) return;
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    if (location.hash) {
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+    window.scrollTo(0, 0);
+  } catch (e) {}
+})();
+</script>
 <noscript><style>#preloader{display:none !important}</style></noscript>
 <link rel="icon" href="data:," />
 <title>The Ancient Crown Heist — ICT Open Ended Lab 1</title>
