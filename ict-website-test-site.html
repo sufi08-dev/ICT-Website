@@ -17,6 +17,7 @@
   document.documentElement.setAttribute("data-theme", t);
 })();
 </script>
+<noscript><style>#preloader{display:none !important}</style></noscript>
 <link rel="icon" href="data:," />
 <title>The Ancient Crown Heist — ICT Open Ended Lab 1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,6 +72,42 @@
   a{color:var(--gold-deep)}
   img,iframe{max-width:100%}
   ::selection{background:var(--gold-fill);color:#fff}
+
+  /* ---------- Preloader (brief; hides itself even without JavaScript) ---------- */
+  .preloader{
+    position:fixed;inset:0;z-index:9000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:24px;text-align:center;
+    background:var(--bg);color:var(--ink);
+    animation:preloaderAutohide .6s ease 2.4s forwards;
+  }
+  .preloader.is-done{
+    animation:none;opacity:0;visibility:hidden;pointer-events:none;
+    transition:opacity .45s ease,visibility 0s linear .45s;
+  }
+  @keyframes preloaderAutohide{to{opacity:0;visibility:hidden}}
+  .preloader-crown{width:46px;height:46px;color:var(--gold);display:block;animation:preloaderIn .5s ease both}
+  .preloader-title{
+    font-family:"Cinzel",serif;font-weight:700;letter-spacing:.05em;
+    font-size:clamp(21px,5vw,32px);line-height:1.25;margin:20px 0 0;color:var(--ink);
+    animation:preloaderIn .5s ease .08s both;
+  }
+  .preloader-line{
+    width:min(200px,56vw);height:2px;margin-top:26px;border-radius:2px;
+    background:var(--line-soft);overflow:hidden;
+    animation:preloaderIn .5s ease .16s both;
+  }
+  .preloader-line-fill{
+    height:100%;width:0;border-radius:2px;background:var(--gold-fill);
+    animation:preloaderFill 1.9s cubic-bezier(.22,.61,.36,1) .1s forwards;
+  }
+  @keyframes preloaderFill{to{width:92%}}
+  @keyframes preloaderIn{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){
+    .preloader-crown,.preloader-title,.preloader-line{animation:none}
+    .preloader-line-fill{animation:none;width:100%}
+    .preloader.is-done{transition:opacity .3s ease,visibility 0s linear .3s}
+  }
 
   /* ---------- Nav ---------- */
   .nav{
@@ -430,6 +467,37 @@
 </style>
 </head>
 <body>
+
+<!-- ===================== PRELOADER ===================== -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <svg class="preloader-crown" viewBox="0 0 24 24" fill="currentColor" focusable="false"><path d="M2.5 18.5h19v1.8h-19zM3.2 16.8 2 7.6l5.6 3.7L12 4.6l4.4 6.7L22 7.6l-1.2 9.2zM5.6 5.2a1.5 1.5 0 1 1-2.4 1.8A1.5 1.5 0 0 1 5.6 5.2zm13.9.6a1.5 1.5 0 1 1 1.2 2.8 1.5 1.5 0 0 1-1.2-2.8zM12 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
+  <p class="preloader-title">The Ancient Crown Heist</p>
+  <div class="preloader-line"><div class="preloader-line-fill"></div></div>
+</div>
+<script>
+/* Preloader dismissal: fade out as soon as the page has loaded, keeping a
+   brief minimum so the mark is actually seen. If this script never runs,
+   the CSS animation on .preloader hides the loader on its own; the hard
+   timeout here covers a stalled load. The loader can never trap the page. */
+(function(){
+  var el = document.getElementById("preloader");
+  if (!el) return;
+  var done = false, start = Date.now();
+  function hide(){
+    if (done) return;
+    done = true;
+    el.classList.add("is-done");
+    setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 800);
+  }
+  function ready(){
+    var wait = 450 - (Date.now() - start);
+    if (wait > 0) setTimeout(hide, wait); else hide();
+  }
+  if (document.readyState === "complete") ready();
+  else window.addEventListener("load", ready);
+  setTimeout(hide, 2600);
+})();
+</script>
 
 <!-- ===================== MAIN PAGE ===================== -->
 <div id="main-view">
