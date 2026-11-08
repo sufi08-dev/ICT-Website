@@ -143,10 +143,51 @@
 
   /* ---------- Hero ---------- */
   .hero{
-    position:relative;display:flex;align-items:center;
+    position:relative;display:flex;align-items:center;overflow:hidden;
     padding:170px 0 110px;background:var(--bg);
   }
-  .hero-inner{position:relative;width:100%;text-align:center}
+  .hero-inner{position:relative;width:100%;text-align:center;z-index:1}
+
+  /* ---------- Hero background graphics (soft, slow, decorative only) ---------- */
+  .hero-bg{
+    position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+    --glow-1:rgba(201,162,39,.20);
+    --glow-2:rgba(201,162,39,.13);
+    --ring:rgba(169,132,32,.17);
+  }
+  :root[data-theme="dark"] .hero-bg{
+    --glow-1:rgba(212,175,55,.15);
+    --glow-2:rgba(212,175,55,.10);
+    --ring:rgba(212,175,55,.15);
+  }
+  .hero-blob{position:absolute;border-radius:50%;will-change:transform}
+  .hero-blob-1{
+    width:560px;height:560px;top:-190px;left:-130px;
+    background:radial-gradient(circle at center,var(--glow-1) 0%,transparent 68%);
+    animation:heroDrift1 26s ease-in-out infinite alternate;
+  }
+  .hero-blob-2{
+    width:460px;height:460px;right:-120px;bottom:-170px;
+    background:radial-gradient(circle at center,var(--glow-1) 0%,transparent 68%);
+    animation:heroDrift2 32s ease-in-out infinite alternate;
+  }
+  .hero-blob-3{
+    width:340px;height:340px;left:56%;top:8%;
+    background:radial-gradient(circle at center,var(--glow-2) 0%,transparent 70%);
+    animation:heroDrift3 38s ease-in-out infinite alternate;
+  }
+  @keyframes heroDrift1{from{transform:translate(0,0) scale(1)}to{transform:translate(72px,46px) scale(1.08)}}
+  @keyframes heroDrift2{from{transform:translate(0,0) scale(1.06)}to{transform:translate(-66px,-42px) scale(.97)}}
+  @keyframes heroDrift3{from{transform:translate(0,0) scale(1)}to{transform:translate(-48px,34px) scale(1.1)}}
+  .hero-lines{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-lines circle,.hero-lines line{stroke:var(--ring)}
+  .hero-ring{transform-box:fill-box;transform-origin:center;will-change:transform}
+  .hero-ring-a{animation:heroSpin 110s linear infinite}
+  .hero-ring-b{animation:heroSpinR 140s linear infinite}
+  @keyframes heroSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes heroSpinR{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+  .hero-fine-lines{animation:heroLineDrift 30s ease-in-out infinite alternate;will-change:transform}
+  @keyframes heroLineDrift{from{transform:translate(0,0)}to{transform:translate(26px,-14px)}}
   .hero-crown{width:44px;height:44px;color:var(--gold);margin:0 auto 26px;display:block}
   .hero-badge{
     display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);
@@ -171,7 +212,7 @@
   .btn-ghost{background:transparent;color:var(--ink)}
   .btn-ghost:hover{border-color:var(--gold);color:var(--gold-deep)}
   .scroll-hint{
-    position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+    position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:1;
     color:var(--ink-faint);font-size:11px;letter-spacing:.3em;text-transform:uppercase;text-align:center;
   }
   .scroll-hint::after{content:"";display:block;width:1px;height:38px;margin:8px auto 0;background:var(--gold)}
@@ -362,6 +403,7 @@
     .rope-cord,.rope-handle{transition:none}
     .cursor-dot,.cursor-ring,.cursor-ring-inner{transition:none}
     body{transition:none}
+    .hero-bg *{animation:none !important}
   }
 </style>
 </head>
@@ -394,6 +436,26 @@
 
   <!-- HERO -->
   <header class="hero" id="home">
+    <div class="hero-bg" aria-hidden="true">
+      <div class="hero-blob hero-blob-1"></div>
+      <div class="hero-blob hero-blob-2"></div>
+      <div class="hero-blob hero-blob-3"></div>
+      <svg class="hero-lines" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" focusable="false" aria-hidden="true">
+        <g class="hero-ring hero-ring-a">
+          <circle cx="1010" cy="130" r="150" fill="none" stroke-width="1" stroke-dasharray="3 9" />
+          <circle cx="1010" cy="130" r="104" fill="none" stroke-width="1" />
+        </g>
+        <g class="hero-ring hero-ring-b">
+          <circle cx="150" cy="560" r="120" fill="none" stroke-width="1" stroke-dasharray="2 8" />
+          <circle cx="150" cy="560" r="82" fill="none" stroke-width="1" />
+        </g>
+        <g class="hero-fine-lines" fill="none" stroke-width="1">
+          <line x1="-20" y1="190" x2="1220" y2="96" />
+          <line x1="-20" y1="512" x2="1220" y2="606" />
+          <line x1="252" y1="-20" x2="342" y2="720" />
+        </g>
+      </svg>
+    </div>
     <div class="wrap hero-inner">
       <svg class="hero-crown" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-hero><path d="M2.5 18.5h19v1.8h-19zM3.2 16.8 2 7.6l5.6 3.7L12 4.6l4.4 6.7L22 7.6l-1.2 9.2zM5.6 5.2a1.5 1.5 0 1 1-2.4 1.8A1.5 1.5 0 0 1 5.6 5.2zm13.9.6a1.5 1.5 0 1 1 1.2 2.8 1.5 1.5 0 0 1-1.2-2.8zM12 2a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/></svg>
       <p class="hero-badge" data-hero><i></i> ICT Open Ended Lab 1 · DUET Karachi</p>
