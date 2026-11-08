@@ -621,7 +621,7 @@
 
       <div class="contact-box">
         <h3>Contact Info</h3>
-        <p>LinkedIn is the contact link for this profile. The button below is the default LinkedIn link — it opens a LinkedIn people search for this member&rsquo;s name, until a real personal profile URL is provided.</p>
+        <p id="p-contact-note">LinkedIn is the contact link for this profile. The button below is the default LinkedIn link — it opens a LinkedIn people search for this member&rsquo;s name, until a real personal profile URL is provided.</p>
         <a class="linkedin-btn" id="p-linkedin" href="#" target="_blank" rel="noopener noreferrer"><span class="linkedin-mark" aria-hidden="true">in</span><span id="p-linkedin-label">LinkedIn (default link)</span></a>
       </div>
 
@@ -685,7 +685,8 @@
       about:"Sufiyan Kamal is a Computer Science student in Batch 2026 at DUET, Karachi. On The Ancient Crown Heist, his contribution was Video generation.",
       contribution:"Sufiyan worked on Video generation for The Ancient Crown Heist, creating the AI-generated scenes that the film's story is built from.",
       work:"The Ancient Crown Heist — the team's 10-minute 54-second Urdu detective film for ICT Open Ended Lab 1. Sufiyan's Video generation work forms part of the film.",
-      linkedin:"https://www.linkedin.com/search/results/people/?keywords=Sufiyan%20Kamal"
+      linkedin:"https://www.linkedin.com/in/muhammad-sufiyan-2a2750411",
+      linkedinReal:true
     },
     {
       slug:"sameer-ahmed", name:"Sameer Ahmed", initials:"SA", roll:"26F-CS-114",
@@ -768,7 +769,13 @@
     document.getElementById("p-work").textContent = m.work;
     var li = document.getElementById("p-linkedin");
     li.href = m.linkedin;
-    document.getElementById("p-linkedin-label").textContent = "LinkedIn (default link) — Find " + m.name + " on LinkedIn";
+    if (m.linkedinReal){
+      document.getElementById("p-linkedin-label").textContent = "LinkedIn — View " + m.name + "\u2019s profile";
+      document.getElementById("p-contact-note").textContent = "LinkedIn is the contact link for this profile. The button below opens " + m.name + "\u2019s official LinkedIn profile.";
+    } else {
+      document.getElementById("p-linkedin-label").textContent = "LinkedIn (default link) — Find " + m.name + " on LinkedIn";
+      document.getElementById("p-contact-note").textContent = "LinkedIn is the contact link for this profile. The button below is the default LinkedIn link — it opens a LinkedIn people search for this member\u2019s name, until a real personal profile URL is provided.";
+    }
     document.title = m.name + " — The Ancient Crown Heist Team";
     mainView.style.display = "none";
     profileView.style.display = "block";
