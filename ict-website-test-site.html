@@ -525,24 +525,48 @@
   .detail-list b{text-align:right}
   .profile-nav{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
 
-  /* ---------- Comments (giscus — stored in GitHub Discussions) ---------- */
+  /* ---------- Comments (Firebase Firestore) ---------- */
   .comments{background:var(--bg-2);border-top:1px solid var(--line-soft)}
-  .giscus-card{
+  .comments-card{
     margin-top:44px;background:var(--panel);border:1px solid var(--line-soft);
     border-radius:var(--radius);padding:clamp(18px,3.5vw,30px);
     transition:background-color .35s ease,border-color .35s ease;
   }
-  /* Only the first three comments show until "View more" is pressed: the
-     embed is clipped to roughly three comments tall and the rest waits
-     below a soft fade. The script measures the embed's real height and
-     only arms this (and the button) when there is more to reveal. */
-  .giscus-clip{position:relative}
-  .giscus-clip.is-collapsed{max-height:600px;overflow:hidden}
-  .giscus-clip.is-collapsed::after{
-    content:"";position:absolute;left:0;right:0;bottom:0;height:110px;pointer-events:none;
-    background:linear-gradient(to bottom,rgba(0,0,0,0),var(--panel));
+  .comment-form{border-bottom:1px solid var(--line-soft);padding-bottom:24px}
+  .comment-fields{display:grid;grid-template-columns:1fr;gap:16px}
+  .field label{
+    display:block;font-size:13px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--gold-deep);margin-bottom:7px;
   }
-  .giscus-frame{width:100%}
+  .field input,.field textarea{
+    width:100%;font:inherit;font-size:15.5px;color:var(--ink);
+    background:var(--bg);border:1px solid var(--line-soft);border-radius:8px;
+    padding:12px 14px;resize:vertical;
+    transition:border-color .18s ease,background-color .35s ease,color .35s ease;
+  }
+  .field input::placeholder,.field textarea::placeholder{color:var(--ink-faint)}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
+  .comment-form-foot{
+    display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;
+    justify-content:space-between;margin-top:16px;
+  }
+  .comment-status{margin:0;font-size:14px;font-weight:700;color:var(--gold-deep);min-height:1.4em;flex:1 1 220px}
+  .comment-status.is-error{color:#b3261e}
+  :root[data-theme="dark"] .comment-status.is-error{color:#f2b8b5}
+  .comment-submit[disabled]{opacity:.6;cursor:wait}
+  .comment-list-wrap{margin-top:8px}
+  .comment-loading,.comment-empty,.comment-load-error{
+    margin:22px 0 6px;color:var(--ink-faint);font-size:15px;
+  }
+  .comment-load-error{color:#b3261e}
+  :root[data-theme="dark"] .comment-load-error{color:#f2b8b5}
+  .comment-list{list-style:none;margin:0;padding:0}
+  .comment-item{padding:20px 0;border-bottom:1px solid var(--line-soft)}
+  .comment-item:last-child{border-bottom:none}
+  .comment-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between}
+  .comment-name{font-weight:800;font-size:15.5px;color:var(--ink)}
+  .comment-time{font-size:13px;font-weight:600;color:var(--ink-faint)}
+  .comment-message{margin:6px 0 0;color:var(--ink-dim);font-size:15.5px;white-space:pre-wrap;overflow-wrap:break-word}
   .view-more-wrap{margin-top:18px;text-align:center}
 
   /* ---------- Footer ---------- */
@@ -853,15 +877,31 @@
       <h2 class="section-title reveal">Watched the film? Leave a comment</h2>
       <p class="section-lead reveal">
         Seen The Ancient Crown Heist? Tell the team what you thought — your favourite scene,
-        the twist, the music. Comments are stored with the project on GitHub, so every
-        visitor sees the same list. Anyone can read them; posting one asks you to sign in
-        with GitHub.
+        the twist, the music. Every visitor sees the same list. Just add your name and your
+        comment — no account needed.
       </p>
-      <div class="giscus-card reveal">
-        <div class="giscus-clip" id="giscus-clip">
-          <div class="giscus-frame" id="giscus-frame">
-            <script src="https://giscus.app/client.js" data-repo="sufi08-dev/ICT-Website" data-repo-id="R_kgDOVmkcNw" data-category="Announcements" data-category-id="DIC_kwDOVmkcNs4DK1Cr" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom" data-theme="preferred_color_scheme" data-lang="en" crossorigin="anonymous" async></script>
+      <div class="comments-card reveal">
+        <form class="comment-form" id="comment-form" novalidate>
+          <div class="comment-fields">
+            <div class="field">
+              <label for="comment-name">Your name</label>
+              <input id="comment-name" name="name" type="text" maxlength="50" autocomplete="name" placeholder="Your name" required />
+            </div>
+            <div class="field">
+              <label for="comment-message">Your comment</label>
+              <textarea id="comment-message" name="message" rows="3" maxlength="500" placeholder="What did you think of the film?" required></textarea>
+            </div>
           </div>
+          <div class="comment-form-foot">
+            <p class="comment-status" id="comment-status" role="status" aria-live="polite"></p>
+            <button class="btn btn-gold btn-small comment-submit" type="submit" id="comment-submit">Post comment</button>
+          </div>
+        </form>
+        <div class="comment-list-wrap">
+          <p class="comment-loading" id="comment-loading">Loading comments…</p>
+          <ul class="comment-list" id="comment-list"></ul>
+          <p class="comment-empty" id="comment-empty" hidden>No comments yet — be the first to share what you thought.</p>
+          <p class="comment-load-error" id="comment-load-error" hidden>Comments could not be loaded right now. Please try again later.</p>
         </div>
         <div class="view-more-wrap" id="view-more-wrap" hidden>
           <button class="btn btn-ghost" type="button" id="view-more-btn" aria-expanded="false">View more comments</button>
@@ -1276,68 +1316,161 @@
 })();
 </script>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
-/* Visitor comments are powered by giscus: every comment is stored in a
-   GitHub Discussion on sufi08-dev/ICT-Website (Announcements category), so
-   the same list is visible to every visitor — nothing is kept in the
-   browser any more. This script only handles the "first three" behaviour:
-   giscus sizes its iframe to fit all of its content, so once the embed is
-   taller than about three comments, the section is clipped to that height
-   and a "View more" button appears to expand (and re-collapse) it. With
-   three or fewer comments the embed fits, and no button is shown. */
+/* Visitor comments are stored in Firebase Firestore (the 'comments'
+   collection on the Ancient Crown Heist project), so the same list is
+   visible to every visitor and posting needs no account — just a name
+   and a comment. Comments list newest first; only the first three show
+   until "View more" is pressed. The compat builds above expose the
+   classic global `firebase` API, keeping this page on plain scripts. */
 (function(){
   "use strict";
-  var CLIP = 600; /* px — roughly the giscus header plus three comments */
-  var clip = document.getElementById("giscus-clip");
-  var frame = document.getElementById("giscus-frame");
+  var firebaseConfig = { apiKey: "AIzaSyA6M-JHyqagTzdKPXNFHy9zvnW8K_OXAUo", authDomain: "ancient-crown-heist.firebaseapp.com", projectId: "ancient-crown-heist", storageBucket: "ancient-crown-heist.firebasestorage.app", messagingSenderId: "388551507364", appId: "1:388551507364:web:0e5168dfc70eb7a8599531" };
+
+  var form = document.getElementById("comment-form");
+  var nameInput = document.getElementById("comment-name");
+  var messageInput = document.getElementById("comment-message");
+  var submitBtn = document.getElementById("comment-submit");
+  var status = document.getElementById("comment-status");
+  var loading = document.getElementById("comment-loading");
+  var list = document.getElementById("comment-list");
+  var empty = document.getElementById("comment-empty");
+  var loadError = document.getElementById("comment-load-error");
   var wrap = document.getElementById("view-more-wrap");
   var btn = document.getElementById("view-more-btn");
-  if (!clip || !frame || !wrap || !btn) return;
-  var expanded = false;
+  if (!form || !list || !btn) return;
 
-  function iframe(){
-    return frame.querySelector("iframe.giscus-frame") || frame.querySelector("iframe");
+  var PAGE = 3;
+  var expanded = false;
+  var comments = [];
+
+  function setStatus(text, isError){
+    status.textContent = text || "";
+    status.classList.toggle("is-error", !!isError);
   }
-  function sync(){
-    var f = iframe();
-    if (!f) return;
-    var h = f.offsetHeight || f.clientHeight || 0;
-    if (!h) return;
-    var hasMore = h > CLIP + 40;
-    if (!hasMore) {
-      clip.classList.remove("is-collapsed");
-      wrap.hidden = true;
-      return;
-    }
-    wrap.hidden = false;
-    if (expanded) {
-      clip.classList.remove("is-collapsed");
-      btn.textContent = "Show less";
-      btn.setAttribute("aria-expanded", "true");
-    } else {
-      clip.classList.add("is-collapsed");
-      btn.textContent = "View more comments";
-      btn.setAttribute("aria-expanded", "false");
-    }
+  function timeOf(c){
+    return c.createdAtMs == null ? Infinity : c.createdAtMs;
+  }
+  function formatTime(ms){
+    if (ms == null) return "Just now";
+    try {
+      return new Date(ms).toLocaleString(undefined, {
+        day: "numeric", month: "short", year: "numeric",
+        hour: "numeric", minute: "2-digit"
+      });
+    } catch (e) { return ""; }
+  }
+  function render(){
+    list.textContent = "";
+    comments.forEach(function(c, i){
+      var li = document.createElement("li");
+      li.className = "comment-item";
+      if (!expanded && i >= PAGE) li.hidden = true;
+      var head = document.createElement("div");
+      head.className = "comment-head";
+      var name = document.createElement("span");
+      name.className = "comment-name";
+      name.textContent = c.name;
+      var time = document.createElement("span");
+      time.className = "comment-time";
+      time.textContent = formatTime(c.createdAtMs);
+      head.appendChild(name);
+      head.appendChild(time);
+      var msg = document.createElement("p");
+      msg.className = "comment-message";
+      msg.textContent = c.message;
+      li.appendChild(head);
+      li.appendChild(msg);
+      list.appendChild(li);
+    });
+    empty.hidden = comments.length !== 0;
+    var hasMore = comments.length > PAGE;
+    wrap.hidden = !hasMore;
+    btn.textContent = expanded ? "Show less" : "View more comments";
+    btn.setAttribute("aria-expanded", expanded ? "true" : "false");
   }
   btn.addEventListener("click", function(){
     expanded = !expanded;
-    sync();
-    if (!expanded) clip.scrollIntoView({behavior: "smooth", block: "start"});
+    render();
+    if (!expanded) {
+      var card = document.getElementById("comments");
+      if (card) card.scrollIntoView({behavior: "smooth", block: "start"});
+    }
   });
-  /* The embed loads and resizes asynchronously (and again whenever a
-     comment is posted), so re-check as its size changes and for a while
-     after load. */
-  if (window.MutationObserver) {
-    new MutationObserver(sync).observe(frame, {subtree: true, attributes: true, attributeFilter: ["style", "height"]});
+
+  if (typeof firebase === "undefined" || !firebase.firestore) {
+    loading.hidden = true;
+    loadError.hidden = false;
+    submitBtn.disabled = true;
+    return;
   }
-  var tries = 0;
-  var timer = setInterval(function(){
-    sync();
-    if (++tries > 40) clearInterval(timer);
-  }, 500);
-  window.addEventListener("load", sync);
-  sync();
+
+  var db;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+  } catch (e) {
+    loading.hidden = true;
+    loadError.hidden = false;
+    submitBtn.disabled = true;
+    return;
+  }
+  var commentsRef = db.collection("comments");
+
+  commentsRef.onSnapshot(function(snapshot){
+    comments = [];
+    snapshot.forEach(function(doc){
+      var d = doc.data() || {};
+      var ts = d.createdAt;
+      comments.push({
+        name: typeof d.name === "string" ? d.name : "",
+        message: typeof d.message === "string" ? d.message : "",
+        /* A just-posted comment's server timestamp is still pending
+           locally (null): treat it as the newest so it appears on top. */
+        createdAtMs: ts && typeof ts.toMillis === "function" ? ts.toMillis() : null
+      });
+    });
+    comments.sort(function(a, b){ return timeOf(b) - timeOf(a); });
+    loading.hidden = true;
+    loadError.hidden = true;
+    render();
+  }, function(){
+    loading.hidden = true;
+    loadError.hidden = false;
+  });
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var name = nameInput.value.trim();
+    var message = messageInput.value.trim();
+    if (!name || !message) {
+      setStatus("Please add your name and a comment.", true);
+      return;
+    }
+    if (name.length > 50 || message.length > 500) {
+      setStatus("Names are up to 50 characters and comments up to 500.", true);
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting…";
+    setStatus("", false);
+    commentsRef.add({
+      name: name,
+      message: message,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){
+      form.reset();
+      expanded = false;
+      setStatus("Thanks — your comment is posted.", false);
+    }).catch(function(){
+      setStatus("Your comment could not be posted. Please try again.", true);
+    }).then(function(){
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Post comment";
+    });
+  });
 })();
 </script>
 
