@@ -166,31 +166,108 @@
     .nav-links a{padding:7px 9px;font-size:13px}
   }
 
-  /* ---------- Rope dark-mode toggle ---------- */
+  /* ---------- Rope dark-mode toggle ----------
+     Cord DOWN (long) = light mode · Cord UP (short) = dark mode.
+     The thread is a twisted golden rope: layered diagonal strand
+     gradients over a cylindrical light-to-dark gold shading, with a
+     metallic pull bead. On click it swings and ripples like a real
+     cord (see .is-waving keyframes + the toggle script). */
   .nav-right{display:flex;align-items:flex-start;gap:6px}
   .rope-toggle{
-    --cord:17px;
+    --cord:30px;
     position:relative;flex:0 0 auto;align-self:flex-start;
-    width:30px;height:44px;margin:-14px 0 0;padding:0;
+    width:36px;height:48px;margin:-14px 0 0;padding:0;
     background:transparent;border:none;cursor:pointer;color:var(--gold);
-    -webkit-tap-highlight-color:transparent;
+    -webkit-tap-highlight-color:transparent;overflow:visible;
   }
-  :root[data-theme="dark"] .rope-toggle{--cord:30px}
+  :root[data-theme="dark"] .rope-toggle{--cord:13px}
+  /* Small gold eyelet the cord hangs from */
+  .rope-toggle::before{
+    content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);z-index:3;
+    width:11px;height:5px;border-radius:0 0 6px 6px;
+    background:linear-gradient(180deg,#8a6a1a 0%,#e6c65a 55%,#7d5f10 100%);
+    box-shadow:0 1px 2px rgba(60,48,16,.45),inset 0 -1px 1px rgba(60,40,0,.5);
+  }
+  .rope-swing{
+    position:absolute;inset:0;transform-origin:50% 0;pointer-events:none;
+  }
   .rope-cord{
     position:absolute;top:0;left:50%;transform:translateX(-50%);
-    width:2px;height:var(--cord);border-radius:2px;
-    background:repeating-linear-gradient(180deg,var(--gold) 0 3px,var(--gold-deep) 3px 6px);
-    transition:height .5s cubic-bezier(.34,1.45,.64,1);
+    width:5px;height:var(--cord);border-radius:3px;
+    background:
+      repeating-linear-gradient(52deg,rgba(255,248,190,.8) 0 1.5px,rgba(255,248,190,0) 1.5px 3px,rgba(84,60,6,.5) 3px 4.5px,rgba(84,60,6,0) 4.5px 6px),
+      repeating-linear-gradient(-52deg,rgba(70,50,4,.30) 0 1.5px,rgba(70,50,4,0) 1.5px 4px,rgba(255,255,255,.14) 4px 5px,rgba(255,255,255,0) 5px 6px),
+      linear-gradient(90deg,#6b4e0c 0%,#9c7a1e 22%,#f0d67c 48%,#ffedb0 52%,#c9a227 74%,#6b4e0c 100%);
+    box-shadow:
+      inset 0 0 2px rgba(60,40,0,.55),
+      inset 1px 0 1px rgba(255,255,255,.35),
+      1px 2px 3px rgba(60,48,16,.28);
+    transition:height .55s cubic-bezier(.34,1.45,.64,1);
+  }
+  /* Fine fibre lines running down the strands */
+  .rope-cord::after{
+    content:"";position:absolute;inset:0;border-radius:inherit;
+    background:repeating-linear-gradient(180deg,rgba(60,40,0,.16) 0 1px,rgba(60,40,0,0) 1px 3px);
   }
   .rope-handle{
     position:absolute;top:var(--cord);left:50%;transform:translate(-50%,-1px);
-    width:13px;height:13px;border-radius:50%;
-    background:var(--gold-fill);border:2px solid var(--gold-deep);
-    box-shadow:0 1px 4px rgba(60,48,16,.35);
-    transition:top .5s cubic-bezier(.34,1.45,.64,1),transform .2s ease;
+    width:15px;height:18px;border-radius:50% 50% 50% 50%/42% 42% 62% 62%;
+    background:radial-gradient(circle at 32% 26%,#fff8c8 0%,#f3d97a 30%,#d9b23a 55%,#a9831c 80%,#7d5f10 100%);
+    border:1px solid #7d5f10;
+    box-shadow:
+      inset 0 -3px 5px rgba(90,64,8,.55),
+      inset 0 2px 3px rgba(255,255,255,.5),
+      0 2px 5px rgba(60,48,16,.4);
+    transition:top .55s cubic-bezier(.34,1.45,.64,1),transform .2s ease;
   }
-  .rope-toggle:hover .rope-handle{transform:translate(-50%,-1px) scale(1.18)}
+  /* Collar ring where the cord meets the bead */
+  .rope-handle::before{
+    content:"";position:absolute;top:-3px;left:50%;transform:translateX(-50%);
+    width:8px;height:4px;border-radius:2px;
+    background:linear-gradient(180deg,#e6c65a,#8a6a1a);
+    box-shadow:inset 0 -1px 1px rgba(60,40,0,.6);
+  }
+  /* Specular glint on the bead */
+  .rope-handle::after{
+    content:"";position:absolute;top:3px;left:3px;width:4px;height:5px;border-radius:50%;
+    background:rgba(255,255,255,.85);filter:blur(.4px);transform:rotate(-18deg);
+  }
+  .rope-toggle:hover .rope-handle{transform:translate(-50%,-1px) scale(1.14)}
   .rope-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+  /* Wave on click: the whole cord swings from its eyelet with a
+     decaying pendulum motion while the thread itself ripples —
+     a bend travels down it and the bead lags a beat behind. */
+  .rope-toggle.is-waving .rope-swing{animation:ropeSwing 1.5s cubic-bezier(.22,.61,.36,1) both}
+  .rope-toggle.is-waving .rope-cord{animation:ropeRipple 1.5s ease-out both}
+  .rope-toggle.is-waving .rope-handle{animation:ropeBeadLag 1.5s ease-out both}
+  @keyframes ropeSwing{
+    0%{transform:rotate(0deg)}
+    12%{transform:rotate(11deg)}
+    28%{transform:rotate(-8.5deg)}
+    45%{transform:rotate(6deg)}
+    62%{transform:rotate(-3.8deg)}
+    78%{transform:rotate(2deg)}
+    90%{transform:rotate(-.8deg)}
+    100%{transform:rotate(0deg)}
+  }
+  @keyframes ropeRipple{
+    0%{transform:translateX(-50%) skewX(0deg)}
+    12%{transform:translateX(-50%) skewX(-7deg)}
+    28%{transform:translateX(-50%) skewX(6deg)}
+    45%{transform:translateX(-50%) skewX(-4deg)}
+    62%{transform:translateX(-50%) skewX(2.6deg)}
+    78%{transform:translateX(-50%) skewX(-1.2deg)}
+    100%{transform:translateX(-50%) skewX(0deg)}
+  }
+  @keyframes ropeBeadLag{
+    0%{margin-left:0}
+    12%{margin-left:-3px}
+    28%{margin-left:2.6px}
+    45%{margin-left:-1.8px}
+    62%{margin-left:1.1px}
+    78%{margin-left:-.5px}
+    100%{margin-left:0}
+  }
   .nav,.work-card,.member-card,.profile-card,.profile-box,.contact-box,.fact-list,.chip,.brand-mark,.hero-badge{
     transition:background-color .35s ease,border-color .35s ease;
   }
@@ -488,6 +565,7 @@
     .reveal{opacity:1}
     .member-card,.btn{transition:none}
     .rope-cord,.rope-handle{transition:none}
+    .rope-swing,.rope-toggle.is-waving .rope-swing,.rope-toggle.is-waving .rope-cord,.rope-toggle.is-waving .rope-handle{animation:none}
     .cursor-dot,.cursor-ring,.cursor-ring-inner{transition:none}
     body{transition:none}
     .hero-bg *{animation:none !important}
@@ -545,9 +623,8 @@
         <a href="#about">About</a>
         <a href="#team">Team</a>
       </div>
-      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode" title="Toggle dark mode">
-        <span class="rope-cord" aria-hidden="true"></span>
-        <span class="rope-handle" aria-hidden="true"></span>
+      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode — cord up" title="Light mode (cord down) — pull the cord up for dark mode">
+        <span class="rope-swing" aria-hidden="true"><span class="rope-cord"></span><span class="rope-handle"></span></span>
       </button>
     </div>
   </nav>
@@ -792,9 +869,8 @@
       <div class="nav-links">
         <a href="#team" data-back>← Back to Team</a>
       </div>
-      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode" title="Toggle dark mode">
-        <span class="rope-cord" aria-hidden="true"></span>
-        <span class="rope-handle" aria-hidden="true"></span>
+      <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode — cord up" title="Light mode (cord down) — pull the cord up for dark mode">
+        <span class="rope-swing" aria-hidden="true"><span class="rope-cord"></span><span class="rope-handle"></span></span>
       </button>
     </div>
   </nav>
@@ -887,7 +963,13 @@
   var ropeToggles = document.querySelectorAll(".rope-toggle");
   function syncRopes(){
     var dark = rootEl.getAttribute("data-theme") === "dark";
-    ropeToggles.forEach(function(btn){ btn.setAttribute("aria-pressed", dark ? "true" : "false"); });
+    ropeToggles.forEach(function(btn){
+      btn.setAttribute("aria-pressed", dark ? "true" : "false");
+      /* Cord UP (short) = dark · cord DOWN (long) = light */
+      btn.setAttribute("aria-label", dark ? "Dark mode — cord up" : "Light mode — cord down");
+      btn.title = dark ? "Dark mode (cord up) — pull the cord down for light mode"
+                       : "Light mode (cord down) — pull the cord up for dark mode";
+    });
   }
   ropeToggles.forEach(function(btn){
     btn.addEventListener("click", function(){
@@ -895,6 +977,13 @@
       rootEl.setAttribute("data-theme", next);
       try { localStorage.setItem("crown-heist-theme", next); } catch (e) {}
       syncRopes();
+      /* Wave: swing + ripple the cord that was pulled (skipped for reduced motion) */
+      if (!reduced) {
+        btn.classList.remove("is-waving");
+        void btn.offsetWidth; /* restart the animation on rapid re-clicks */
+        btn.classList.add("is-waving");
+        setTimeout(function(){ btn.classList.remove("is-waving"); }, 1600);
+      }
     });
   });
   syncRopes();
