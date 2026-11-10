@@ -525,6 +525,26 @@
   .detail-list b{text-align:right}
   .profile-nav{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
 
+  /* ---------- Comments (giscus — stored in GitHub Discussions) ---------- */
+  .comments{background:var(--bg-2);border-top:1px solid var(--line-soft)}
+  .giscus-card{
+    margin-top:44px;background:var(--panel);border:1px solid var(--line-soft);
+    border-radius:var(--radius);padding:clamp(18px,3.5vw,30px);
+    transition:background-color .35s ease,border-color .35s ease;
+  }
+  /* Only the first three comments show until "View more" is pressed: the
+     embed is clipped to roughly three comments tall and the rest waits
+     below a soft fade. The script measures the embed's real height and
+     only arms this (and the button) when there is more to reveal. */
+  .giscus-clip{position:relative}
+  .giscus-clip.is-collapsed{max-height:600px;overflow:hidden}
+  .giscus-clip.is-collapsed::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:110px;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(0,0,0,0),var(--panel));
+  }
+  .giscus-frame{width:100%}
+  .view-more-wrap{margin-top:18px;text-align:center}
+
   /* ---------- Footer ---------- */
   footer{border-top:1px solid var(--line);background:var(--bg-2);padding:56px 0 44px;margin-top:0}
   .footer-grid{display:flex;flex-wrap:wrap;gap:28px;justify-content:space-between;align-items:flex-start}
@@ -621,6 +641,7 @@
         <a href="#work">Work</a>
         <a href="#about">About</a>
         <a href="#team">Team</a>
+        <a href="#comments">Comments</a>
       </div>
       <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode — cord up" title="Light mode (cord down) — pull the cord up for dark mode">
         <span class="rope-swing" aria-hidden="true"><span class="rope-cord"></span><span class="rope-handle"></span></span>
@@ -822,6 +843,30 @@
         documentation. Select a member to open their profile.
       </p>
       <div class="team-grid" id="team-grid"><!-- cards rendered by script --></div>
+    </div>
+  </section>
+
+  <!-- COMMENTS -->
+  <section class="comments" id="comments">
+    <div class="wrap">
+      <p class="kicker reveal">Comments</p>
+      <h2 class="section-title reveal">Watched the film? Leave a comment</h2>
+      <p class="section-lead reveal">
+        Seen The Ancient Crown Heist? Tell the team what you thought — your favourite scene,
+        the twist, the music. Comments are stored with the project on GitHub, so every
+        visitor sees the same list. Anyone can read them; posting one asks you to sign in
+        with GitHub.
+      </p>
+      <div class="giscus-card reveal">
+        <div class="giscus-clip" id="giscus-clip">
+          <div class="giscus-frame" id="giscus-frame">
+            <script src="https://giscus.app/client.js" data-repo="sufi08-dev/ICT-Website" data-repo-id="R_kgDOVmkcNw" data-category="Announcements" data-category-id="DIC_kwDOVmkcNs4DK1Cr" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom" data-theme="preferred_color_scheme" data-lang="en" crossorigin="anonymous" async></script>
+          </div>
+        </div>
+        <div class="view-more-wrap" id="view-more-wrap" hidden>
+          <button class="btn btn-ghost" type="button" id="view-more-btn" aria-expanded="false">View more comments</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1228,6 +1273,71 @@
   })();
 
   route();
+})();
+</script>
+
+<script>
+/* Visitor comments are powered by giscus: every comment is stored in a
+   GitHub Discussion on sufi08-dev/ICT-Website (Announcements category), so
+   the same list is visible to every visitor — nothing is kept in the
+   browser any more. This script only handles the "first three" behaviour:
+   giscus sizes its iframe to fit all of its content, so once the embed is
+   taller than about three comments, the section is clipped to that height
+   and a "View more" button appears to expand (and re-collapse) it. With
+   three or fewer comments the embed fits, and no button is shown. */
+(function(){
+  "use strict";
+  var CLIP = 600; /* px — roughly the giscus header plus three comments */
+  var clip = document.getElementById("giscus-clip");
+  var frame = document.getElementById("giscus-frame");
+  var wrap = document.getElementById("view-more-wrap");
+  var btn = document.getElementById("view-more-btn");
+  if (!clip || !frame || !wrap || !btn) return;
+  var expanded = false;
+
+  function iframe(){
+    return frame.querySelector("iframe.giscus-frame") || frame.querySelector("iframe");
+  }
+  function sync(){
+    var f = iframe();
+    if (!f) return;
+    var h = f.offsetHeight || f.clientHeight || 0;
+    if (!h) return;
+    var hasMore = h > CLIP + 40;
+    if (!hasMore) {
+      clip.classList.remove("is-collapsed");
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    if (expanded) {
+      clip.classList.remove("is-collapsed");
+      btn.textContent = "Show less";
+      btn.setAttribute("aria-expanded", "true");
+    } else {
+      clip.classList.add("is-collapsed");
+      btn.textContent = "View more comments";
+      btn.setAttribute("aria-expanded", "false");
+    }
+  }
+  btn.addEventListener("click", function(){
+    expanded = !expanded;
+    sync();
+    if (!expanded) clip.scrollIntoView({behavior: "smooth", block: "start"});
+  });
+  /* The embed loads and resizes asynchronously (and again whenever a
+     comment is posted), so re-check as its size changes and for a while
+     after load. */
+  if (window.MutationObserver) {
+    new MutationObserver(sync).observe(frame, {subtree: true, attributes: true, attributeFilter: ["style", "height"]});
+  }
+  var tries = 0;
+  var timer = setInterval(function(){
+    sync();
+    if (++tries > 40) clearInterval(timer);
+  }, 500);
+  window.addEventListener("load", sync);
+  sync();
 })();
 </script>
 
