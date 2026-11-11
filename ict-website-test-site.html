@@ -567,6 +567,27 @@
   .comment-name{font-weight:800;font-size:15.5px;color:var(--ink)}
   .comment-time{font-size:13px;font-weight:600;color:var(--ink-faint)}
   .comment-message{margin:6px 0 0;color:var(--ink-dim);font-size:15.5px;white-space:pre-wrap;overflow-wrap:break-word}
+  .comment-actions{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+  .comment-delete-btn,.owner-signin-btn,.owner-signout-btn,.comment-confirm-btn,.comment-cancel-btn{
+    font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:transparent;
+    border:1px solid var(--line-soft);border-radius:999px;padding:5px 12px;color:var(--ink-dim);
+  }
+  .comment-delete-btn:hover{color:#b3261e;border-color:#b3261e}
+  :root[data-theme="dark"] .comment-delete-btn:hover{color:#f2b8b5;border-color:#f2b8b5}
+  .comment-delete-btn:focus-visible,.owner-signin-btn:focus-visible,.owner-signout-btn:focus-visible,.comment-confirm-btn:focus-visible,.comment-cancel-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .comment-delete-confirm{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin-top:10px;font-size:14px;color:var(--ink-dim)}
+  .comment-confirm-btn{color:#b3261e;border-color:rgba(179,38,30,.45)}
+  .comment-confirm-btn:hover{background:rgba(179,38,30,.06)}
+  :root[data-theme="dark"] .comment-confirm-btn{color:#f2b8b5;border-color:rgba(242,184,181,.45)}
+  .comment-delete-error{margin:14px 0 0;font-size:14px;font-weight:700;color:#b3261e}
+  :root[data-theme="dark"] .comment-delete-error{color:#f2b8b5}
+  .owner-auth{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:flex-end;margin-top:14px}
+  .owner-signin-btn{color:var(--ink-faint);border-color:transparent;padding:5px 8px;font-weight:600}
+  .owner-signin-btn:hover{color:var(--gold-deep);text-decoration:underline}
+  .owner-signed{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13.5px;color:var(--ink-faint);font-weight:600}
+  .owner-signed[hidden]{display:none}
+  .owner-signout-btn{font-size:13px;padding:5px 12px}
+  .owner-signout-btn:hover,.owner-signin-btn:hover{border-color:var(--line)}
   .view-more-wrap{margin-top:18px;text-align:center}
 
   /* ---------- Footer ---------- */
@@ -897,6 +918,14 @@
             <button class="btn btn-gold btn-small comment-submit" type="submit" id="comment-submit">Post comment</button>
           </div>
         </form>
+        <div class="owner-auth" id="owner-auth">
+          <button class="owner-signin-btn" type="button" id="owner-signin-btn">Owner sign in</button>
+          <div class="owner-signed" id="owner-signed" hidden>
+            <span>Signed in as owner</span>
+            <button class="owner-signout-btn" type="button" id="owner-signout-btn">Sign out</button>
+          </div>
+        </div>
+        <p class="comment-delete-error" id="comment-delete-error" role="alert" aria-live="polite" hidden></p>
         <div class="comment-list-wrap">
           <p class="comment-loading" id="comment-loading">Loading comments…</p>
           <ul class="comment-list" id="comment-list"></ul>
@@ -1318,16 +1347,21 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script>
 /* Visitor comments are stored in Firebase Firestore (the 'comments'
    collection on the Ancient Crown Heist project), so the same list is
    visible to every visitor and posting needs no account — just a name
    and a comment. Comments list newest first; only the first three show
    until "View more" is pressed. The compat builds above expose the
-   classic global `firebase` API, keeping this page on plain scripts. */
+   classic global `firebase` API, keeping this page on plain scripts.
+   Each visitor is signed in anonymously so every comment carries its
+   writer's authorUid; only that writer — or the site owner signed in
+   with Google — can delete it, as the Firestore rules enforce. */
 (function(){
   "use strict";
   var firebaseConfig = { apiKey: "AIzaSyA6M-JHyqagTzdKPXNFHy9zvnW8K_OXAUo", authDomain: "ancient-crown-heist.firebaseapp.com", projectId: "ancient-crown-heist", storageBucket: "ancient-crown-heist.firebasestorage.app", messagingSenderId: "388551507364", appId: "1:388551507364:web:0e5168dfc70eb7a8599531" };
+  var OWNER_EMAIL = "sufiyankamal04@gmail.com";
 
   var form = document.getElementById("comment-form");
   var nameInput = document.getElementById("comment-name");
@@ -1340,15 +1374,47 @@
   var loadError = document.getElementById("comment-load-error");
   var wrap = document.getElementById("view-more-wrap");
   var btn = document.getElementById("view-more-btn");
+  var ownerSignInBtn = document.getElementById("owner-signin-btn");
+  var ownerSigned = document.getElementById("owner-signed");
+  var ownerSignOutBtn = document.getElementById("owner-signout-btn");
+  var deleteError = document.getElementById("comment-delete-error");
   if (!form || !list || !btn) return;
 
   var PAGE = 3;
   var expanded = false;
   var comments = [];
+  var currentUser = null;
+  var authReady = false;
+  var pendingDeleteId = null;
+  var deletingId = null;
 
   function setStatus(text, isError){
     status.textContent = text || "";
     status.classList.toggle("is-error", !!isError);
+  }
+  function setDeleteError(text){
+    if (!deleteError) return;
+    deleteError.textContent = text || "";
+    deleteError.hidden = !text;
+  }
+  function isOwner(user){
+    return !!(user && user.email && user.email === OWNER_EMAIL);
+  }
+  function canDelete(c){
+    if (!currentUser) return false;
+    if (isOwner(currentUser)) return true;
+    if (!c.authorUid) return false;
+    return currentUser.uid === c.authorUid;
+  }
+  function updateAuthUI(){
+    var owner = isOwner(currentUser);
+    if (ownerSignInBtn) ownerSignInBtn.hidden = owner;
+    if (ownerSigned) ownerSigned.hidden = !owner;
+    /* The form stays disabled until anonymous (or owner) sign-in is ready,
+       so a comment can never be posted without its authorUid. */
+    if (!deletingId) {
+      submitBtn.disabled = !authReady || !currentUser;
+    }
   }
   function timeOf(c){
     return c.createdAtMs == null ? Infinity : c.createdAtMs;
@@ -1383,6 +1449,49 @@
       msg.textContent = c.message;
       li.appendChild(head);
       li.appendChild(msg);
+      if (canDelete(c)) {
+        if (pendingDeleteId === c.id) {
+          var confirmRow = document.createElement("div");
+          confirmRow.className = "comment-delete-confirm";
+          var confirmText = document.createElement("span");
+          confirmText.textContent = "Delete this comment?";
+          var confirmBtn = document.createElement("button");
+          confirmBtn.type = "button";
+          confirmBtn.className = "comment-confirm-btn";
+          confirmBtn.textContent = deletingId === c.id ? "Deleting…" : "Yes, delete";
+          confirmBtn.disabled = deletingId === c.id;
+          confirmBtn.addEventListener("click", function(){ deleteComment(c); });
+          var cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "comment-cancel-btn";
+          cancelBtn.textContent = "Cancel";
+          cancelBtn.disabled = deletingId === c.id;
+          cancelBtn.addEventListener("click", function(){
+            pendingDeleteId = null;
+            setDeleteError("");
+            render();
+          });
+          confirmRow.appendChild(confirmText);
+          confirmRow.appendChild(confirmBtn);
+          confirmRow.appendChild(cancelBtn);
+          li.appendChild(confirmRow);
+        } else {
+          var actions = document.createElement("div");
+          actions.className = "comment-actions";
+          var delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "comment-delete-btn";
+          delBtn.textContent = "Delete";
+          delBtn.setAttribute("aria-label", "Delete this comment");
+          delBtn.addEventListener("click", function(){
+            pendingDeleteId = c.id;
+            setDeleteError("");
+            render();
+          });
+          actions.appendChild(delBtn);
+          li.appendChild(actions);
+        }
+      }
       list.appendChild(li);
     });
     empty.hidden = comments.length !== 0;
@@ -1400,7 +1509,7 @@
     }
   });
 
-  if (typeof firebase === "undefined" || !firebase.firestore) {
+  if (typeof firebase === "undefined" || !firebase.firestore || !firebase.auth) {
     loading.hidden = true;
     loadError.hidden = false;
     submitBtn.disabled = true;
@@ -1408,9 +1517,11 @@
   }
 
   var db;
+  var auth;
   try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    auth = firebase.auth();
   } catch (e) {
     loading.hidden = true;
     loadError.hidden = false;
@@ -1419,14 +1530,82 @@
   }
   var commentsRef = db.collection("comments");
 
+  /* Anonymous sign-in on load (only when nobody is signed in — an existing
+     session, including the owner's Google session, is never signed out).
+     Signing out as owner falls back through this same handler, which
+     returns the visitor to anonymous sign-in. */
+  submitBtn.disabled = true;
+  auth.onAuthStateChanged(function(user){
+    if (user) {
+      currentUser = user;
+      authReady = true;
+      updateAuthUI();
+      render();
+    } else {
+      currentUser = null;
+      authReady = false;
+      pendingDeleteId = null;
+      updateAuthUI();
+      render();
+      auth.signInAnonymously().catch(function(){
+        /* If anonymous sign-in fails, posting stays disabled and the
+           submit handler explains why; the list itself still loads. */
+      });
+    }
+  }, function(){
+    currentUser = null;
+    authReady = false;
+    updateAuthUI();
+  });
+
+  if (ownerSignInBtn) {
+    ownerSignInBtn.addEventListener("click", function(){
+      setDeleteError("");
+      var provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(function(){
+        setDeleteError("Owner sign-in could not be completed. Please try again.");
+      });
+    });
+  }
+  if (ownerSignOutBtn) {
+    ownerSignOutBtn.addEventListener("click", function(){
+      setDeleteError("");
+      auth.signOut().catch(function(){
+        setDeleteError("Sign out could not be completed. Please try again.");
+      });
+      /* onAuthStateChanged then signs the visitor back in anonymously. */
+    });
+  }
+
+  function deleteComment(c){
+    if (!c || !c.id || deletingId) return;
+    deletingId = c.id;
+    setDeleteError("");
+    render();
+    commentsRef.doc(c.id).delete().then(function(){
+      deletingId = null;
+      pendingDeleteId = null;
+      setDeleteError("");
+      /* The snapshot listener removes the comment from the list. */
+      render();
+    }).catch(function(){
+      deletingId = null;
+      pendingDeleteId = null;
+      setDeleteError("This comment could not be deleted. You can only delete your own comments.");
+      render();
+    });
+  }
+
   commentsRef.onSnapshot(function(snapshot){
     comments = [];
     snapshot.forEach(function(doc){
       var d = doc.data() || {};
       var ts = d.createdAt;
       comments.push({
+        id: doc.id,
         name: typeof d.name === "string" ? d.name : "",
         message: typeof d.message === "string" ? d.message : "",
+        authorUid: typeof d.authorUid === "string" ? d.authorUid : null,
         /* A just-posted comment's server timestamp is still pending
            locally (null): treat it as the newest so it appears on top. */
         createdAtMs: ts && typeof ts.toMillis === "function" ? ts.toMillis() : null
@@ -1443,6 +1622,10 @@
 
   form.addEventListener("submit", function(ev){
     ev.preventDefault();
+    if (!authReady || !currentUser) {
+      setStatus("Just a moment — sign-in is still preparing. Please try again.", true);
+      return;
+    }
     var name = nameInput.value.trim();
     var message = messageInput.value.trim();
     if (!name || !message) {
@@ -1459,6 +1642,7 @@
     commentsRef.add({
       name: name,
       message: message,
+      authorUid: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function(){
       form.reset();
@@ -1467,8 +1651,8 @@
     }).catch(function(){
       setStatus("Your comment could not be posted. Please try again.", true);
     }).then(function(){
-      submitBtn.disabled = false;
       submitBtn.textContent = "Post comment";
+      updateAuthUI();
     });
   });
 })();
