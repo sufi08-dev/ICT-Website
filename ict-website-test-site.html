@@ -163,7 +163,6 @@
   .nav-links a:hover{color:var(--gold-deep);background:var(--bg-3)}
   @media (max-width:640px){
     .brand-text span{display:none}
-    .nav-links a{padding:7px 9px;font-size:13px}
   }
 
   /* ---------- Rope dark-mode toggle ----------
@@ -176,7 +175,7 @@
   .rope-toggle{
     --cord:30px;
     position:relative;flex:0 0 auto;align-self:flex-start;
-    width:36px;height:48px;margin:-14px 0 0;padding:0;
+    width:44px;height:48px;margin:-14px 0 0;padding:0;
     background:transparent;border:none;cursor:pointer;color:var(--gold);
     -webkit-tap-highlight-color:transparent;overflow:visible;
   }
@@ -569,8 +568,8 @@
   .comment-message{margin:6px 0 0;color:var(--ink-dim);font-size:15.5px;white-space:pre-wrap;overflow-wrap:break-word}
   .comment-actions{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
   .comment-delete-btn,.owner-signin-btn,.owner-signout-btn,.comment-confirm-btn,.comment-cancel-btn{
-    font:inherit;font-size:13px;font-weight:700;cursor:pointer;background:transparent;
-    border:1px solid var(--line-soft);border-radius:999px;padding:5px 12px;color:var(--ink-dim);
+    font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;background:transparent;
+    border:1px solid var(--line-soft);border-radius:999px;padding:10px 16px;color:var(--ink-dim);
   }
   .comment-delete-btn:hover{color:#b3261e;border-color:#b3261e}
   :root[data-theme="dark"] .comment-delete-btn:hover{color:#f2b8b5;border-color:#f2b8b5}
@@ -581,9 +580,10 @@
   :root[data-theme="dark"] .comment-confirm-btn{color:#f2b8b5;border-color:rgba(242,184,181,.45)}
   .comment-delete-error{margin:14px 0 0;font-size:14px;font-weight:700;color:#b3261e}
   :root[data-theme="dark"] .comment-delete-error{color:#f2b8b5}
-  .owner-auth{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:flex-end;margin-top:14px}
-  .owner-signin-btn{color:var(--ink-faint);border-color:transparent;padding:5px 8px;font-weight:600}
-  .owner-signin-btn:hover{color:var(--gold-deep);text-decoration:underline}
+  .owner-auth{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:flex-end;margin-top:18px}
+  .owner-signin-btn{color:var(--gold-deep);border-color:var(--line);font-weight:800;padding:10px 18px;background:var(--bg-2)}
+  .owner-signin-btn:hover{background:var(--bg-3)}
+  .owner-signin-btn[disabled]{opacity:.6;cursor:wait}
   .owner-signed{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13.5px;color:var(--ink-faint);font-weight:600}
   .owner-signed[hidden]{display:none}
   .owner-signout-btn{font-size:13px;padding:5px 12px}
@@ -622,6 +622,71 @@
   }
   .cursor-dot.is-on,.cursor-ring.is-on{opacity:1}
   .cursor-ring.is-hover .cursor-ring-inner{transform:scale(1.5);opacity:1;background:rgba(201,162,39,.08)}
+
+  /* ---------- Responsive — phones & tablets ----------
+     At 860px and below, the inline nav links move into a drop-down
+     panel under the bar (hamburger button; the nav gets .menu-open),
+     so the brand, menu button and rope toggle always fit on one row
+     and every link is a full-width tap target. Smaller breakpoints
+     stack side-by-side rows and stretch key controls full width. */
+  html,body{overflow-x:hidden}
+  @supports (overflow:clip){html,body{overflow-x:clip}}
+  .nav-toggle{
+    display:none;width:44px;height:44px;flex:0 0 44px;
+    align-items:center;justify-content:center;padding:0;
+    background:transparent;border:1px solid var(--line-soft);border-radius:10px;
+    color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  .nav-toggle svg{width:22px;height:22px;display:block}
+  .nav-toggle:hover{color:var(--gold-deep);border-color:var(--line)}
+  .nav-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  @media (max-width:860px){
+    .nav-toggle{display:inline-flex}
+    .nav-links{
+      display:none;position:absolute;top:100%;left:0;right:0;
+      flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:2px;
+      background:var(--nav-bg);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+      padding:10px clamp(16px,4vw,44px) 14px;
+      box-shadow:0 18px 30px rgba(60,48,16,.14);
+    }
+    .nav.menu-open .nav-links{display:flex}
+    .nav-links a{
+      display:flex;align-items:center;min-height:48px;
+      padding:12px 14px;font-size:15.5px;border-radius:10px;
+    }
+  }
+  @media (max-width:640px){
+    .hero{padding:134px 0 86px}
+    .profile-head{padding:112px 0 0}
+    .footer-grid{flex-direction:column;gap:18px}
+  }
+  @media (max-width:560px){
+    .fact-list li{flex-direction:column;gap:2px}
+    .fact-list dd{text-align:left}
+    .detail-list li{flex-direction:column;gap:2px}
+    .detail-list b{text-align:left}
+    .profile-top{flex-direction:column;align-items:flex-start;gap:16px}
+    .comment-form-foot{flex-direction:column;align-items:stretch}
+    .comment-status{flex:none}
+    .comment-submit{width:100%;justify-content:center}
+    .owner-auth{justify-content:flex-start}
+    .hero-cta .btn{flex:1 1 100%;justify-content:center}
+  }
+  @media (max-width:480px){
+    .nav{gap:10px}
+    .brand{gap:9px}
+    .brand-mark{width:34px;height:34px;flex-basis:34px}
+    .brand-text strong{font-size:12px;letter-spacing:.04em}
+    .work-card{padding:20px}
+    .profile-box,.contact-box{padding:20px}
+    .film-caption,.doc-bar{padding:14px 16px}
+  }
+  @media (max-width:420px){
+    .stat{padding:24px 8px}
+    .stat span{font-size:11px;letter-spacing:.12em}
+  }
 
   .reveal{opacity:0}
   @media (prefers-reduced-motion: reduce){
@@ -681,7 +746,10 @@
       </span>
     </a>
     <div class="nav-right">
-      <div class="nav-links">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links-main" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="nav-links" id="nav-links-main">
         <a href="#home">Home</a>
         <a href="#work">Work</a>
         <a href="#about">About</a>
@@ -919,9 +987,9 @@
           </div>
         </form>
         <div class="owner-auth" id="owner-auth">
-          <button class="owner-signin-btn" type="button" id="owner-signin-btn">Owner sign in</button>
+          <button class="owner-signin-btn" type="button" id="owner-signin-btn">Admin sign in</button>
           <div class="owner-signed" id="owner-signed" hidden>
-            <span>Signed in as owner</span>
+            <span>Admin — signed in as owner</span>
             <button class="owner-signout-btn" type="button" id="owner-signout-btn">Sign out</button>
           </div>
         </div>
@@ -971,7 +1039,10 @@
       </span>
     </a>
     <div class="nav-right">
-      <div class="nav-links">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links-profile" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="nav-links" id="nav-links-profile">
         <a href="#team" data-back>← Back to Team</a>
       </div>
       <button class="rope-toggle" type="button" aria-pressed="false" aria-label="Dark mode — cord up" title="Light mode (cord down) — pull the cord up for dark mode">
@@ -1092,6 +1163,36 @@
     });
   });
   syncRopes();
+
+  /* ---------------- Mobile / tablet nav menu ----------------
+     At 860px and below the nav links live in a drop-down panel; the
+     hamburger button toggles it. Choosing a link, tapping outside,
+     pressing Escape, or widening the window past the breakpoint
+     closes it again. Applies to both the main and profile navs. */
+  document.querySelectorAll(".nav").forEach(function(nav){
+    var toggle = nav.querySelector(".nav-toggle");
+    if (!toggle) return;
+    function setOpen(open){
+      nav.classList.toggle("menu-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    }
+    toggle.addEventListener("click", function(){
+      setOpen(!nav.classList.contains("menu-open"));
+    });
+    nav.querySelectorAll(".nav-links a").forEach(function(link){
+      link.addEventListener("click", function(){ setOpen(false); });
+    });
+    document.addEventListener("click", function(e){
+      if (nav.classList.contains("menu-open") && !nav.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape") setOpen(false);
+    });
+    window.addEventListener("resize", function(){
+      if (window.innerWidth > 860) setOpen(false);
+    });
+  });
 
   /* ---------------- Team data (facts from the project record) ---------------- */
   var TEAM = [
@@ -1530,6 +1631,14 @@
   }
   var commentsRef = db.collection("comments");
 
+  /* If this page load is the return from the admin Google sign-in
+     redirect, collect its result here — onAuthStateChanged below then
+     picks up the signed-in owner, who sees a Delete control on every
+     comment. A failed return is reported inside the comments card. */
+  auth.getRedirectResult().catch(function(){
+    setDeleteError("Admin sign-in could not be completed. Please try again.");
+  });
+
   /* Anonymous sign-in on load (only when nobody is signed in — an existing
      session, including the owner's Google session, is never signed out).
      Signing out as owner falls back through this same handler, which
@@ -1561,9 +1670,17 @@
   if (ownerSignInBtn) {
     ownerSignInBtn.addEventListener("click", function(){
       setDeleteError("");
+      ownerSignInBtn.disabled = true;
+      ownerSignInBtn.textContent = "Opening Google sign-in…";
       var provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(function(){
-        setDeleteError("Owner sign-in could not be completed. Please try again.");
+      /* Redirect sign-in, not a popup: the page goes to Google and
+         comes back, which works in mobile browsers where popups are
+         blocked or stripped. The result is collected by the
+         getRedirectResult call above when the page loads again. */
+      auth.signInWithRedirect(provider).catch(function(){
+        ownerSignInBtn.disabled = false;
+        ownerSignInBtn.textContent = "Admin sign in";
+        setDeleteError("Admin sign-in could not be started. Please try again.");
       });
     });
   }
