@@ -1499,7 +1499,14 @@
     deleteError.hidden = !text;
   }
   function isOwner(user){
-    return !!(user && user.email && user.email === OWNER_EMAIL);
+    if (!user) return false;
+    var target = OWNER_EMAIL.toLowerCase();
+    if (user.email && user.email.toLowerCase() === target) return true;
+    var providers = user.providerData || [];
+    for (var i = 0; i < providers.length; i++) {
+      if (providers[i] && providers[i].email && providers[i].email.toLowerCase() === target) return true;
+    }
+    return false;
   }
   function canDelete(c){
     if (!currentUser) return false;
@@ -1631,35 +1638,104 @@
   }
   var commentsRef = db.collection("comments");
 
-  /* If this page load is the return from the admin Google sign-in
-     redirect, collect its result here — onAuthStateChanged below then
-     picks up the signed-in owner, who sees a Delete control on every
-     comment. A failed return is reported inside the comments card. */
-  auth.getRedirectResult().catch(function(){
+  /* ---------- Admin (owner) sign-in ----------
+     Why this flow changed: the site is served from
+     sufi08-dev.github.io, but Firebase Auth hands a redirect sign-in
+     back through storage owned by the auth domain
+     (ancient-crown-heist.firebaseapp.com). Browsers now partition
+     that cross-site storage, so the old signInWithRedirect flow
+     completed at Google, returned to this page with no error — and
+     no session. The visitor was silently anonymous again, the button
+     stayed on "Admin sign in", and no Delete controls appeared.
+     The anonymous sign-in below made it worse: it fired the moment
+     the page saw "no user", racing any returning redirect session.
+     (The popup flow only failed earlier because the site's domain
+     was not yet on Firebase's authorized-domains list; it has been
+     added since, and the redirect reaching Google proved it.)
+     The fix:
+       1. Sign in with signInWithPopup, which returns the Google
+          credential directly to this page — nothing depends on the
+          auth domain's storage. Redirect remains only as a fallback
+          for browsers that block the popup outright.
+       2. Anonymous sign-in never starts until a redirect result has
+          been collected, and a returning redirect user is applied
+          directly from getRedirectResult, not left to
+          onAuthStateChanged alone.
+       3. Every completed sign-in is acknowledged on the page: the
+          owner sees "Admin — signed in as owner"; any other Google
+          account is told it is not the owner account, instead of the
+          button silently staying on "Admin sign in". */
+  function storageGet(key){ try { return window.sessionStorage.getItem(key); } catch (e) { return null; } }
+  function storageSet(key){ try { window.sessionStorage.setItem(key, "1"); } catch (e) {} }
+  function storageClear(key){ try { window.sessionStorage.removeItem(key); } catch (e) {} }
+  var ADMIN_REDIRECT_KEY = "crown-admin-redirect";
+  var wasRedirectReturn = storageGet(ADMIN_REDIRECT_KEY) === "1";
+
+  var redirectSettled = false;
+  var anonStarted = false;
+  function maybeSignInAnonymously(){
+    if (currentUser || anonStarted || !redirectSettled) return;
+    anonStarted = true;
+    auth.signInAnonymously().catch(function(){
+      anonStarted = false;
+      /* If anonymous sign-in fails, posting stays disabled and the
+         submit handler explains why; the list itself still loads. */
+    });
+  }
+  function applySignedInUser(user){
+    currentUser = user;
+    authReady = true;
+    if (isOwner(user)) setDeleteError("");
+    updateAuthUI();
+    render();
+  }
+  function noteNonOwner(user){
+    if (user && !user.isAnonymous && !isOwner(user)) {
+      setDeleteError("Signed in as " + (user.email || "a Google account") + " — only the site owner's account can delete every comment.");
+    }
+  }
+
+  /* Collect a redirect sign-in result first (only the fallback path
+     produces one). The resolved user is applied directly, and
+     anonymous sign-in is held back until this has settled, so a
+     returning owner session can never be replaced by a fresh
+     anonymous one. */
+  auth.getRedirectResult().then(function(result){
+    redirectSettled = true;
+    storageClear(ADMIN_REDIRECT_KEY);
+    if (result && result.user) {
+      applySignedInUser(result.user);
+      noteNonOwner(result.user);
+    } else {
+      if (wasRedirectReturn) {
+        setDeleteError("Google sign-in finished, but the admin session did not come through. Please tap Admin sign in again.");
+      }
+      maybeSignInAnonymously();
+    }
+  }).catch(function(){
+    redirectSettled = true;
+    storageClear(ADMIN_REDIRECT_KEY);
     setDeleteError("Admin sign-in could not be completed. Please try again.");
+    maybeSignInAnonymously();
   });
 
-  /* Anonymous sign-in on load (only when nobody is signed in — an existing
-     session, including the owner's Google session, is never signed out).
-     Signing out as owner falls back through this same handler, which
-     returns the visitor to anonymous sign-in. */
+  /* Anonymous sign-in on load (only when nobody is signed in — an
+     existing session, including the owner's Google session, is never
+     signed out). Signing out as owner falls back through this same
+     handler, which returns the visitor to anonymous sign-in. */
   submitBtn.disabled = true;
   auth.onAuthStateChanged(function(user){
     if (user) {
-      currentUser = user;
-      authReady = true;
-      updateAuthUI();
-      render();
+      anonStarted = false;
+      applySignedInUser(user);
+      noteNonOwner(user);
     } else {
       currentUser = null;
       authReady = false;
       pendingDeleteId = null;
       updateAuthUI();
       render();
-      auth.signInAnonymously().catch(function(){
-        /* If anonymous sign-in fails, posting stays disabled and the
-           submit handler explains why; the list itself still loads. */
-      });
+      maybeSignInAnonymously();
     }
   }, function(){
     currentUser = null;
@@ -1667,20 +1743,54 @@
     updateAuthUI();
   });
 
+  function resetSignInBtn(){
+    if (!ownerSignInBtn) return;
+    ownerSignInBtn.disabled = false;
+    ownerSignInBtn.textContent = "Admin sign in";
+  }
+  function startRedirectSignIn(provider){
+    storageSet(ADMIN_REDIRECT_KEY);
+    auth.signInWithRedirect(provider).catch(function(){
+      storageClear(ADMIN_REDIRECT_KEY);
+      resetSignInBtn();
+      setDeleteError("Admin sign-in could not be started. Please try again.");
+    });
+  }
   if (ownerSignInBtn) {
     ownerSignInBtn.addEventListener("click", function(){
       setDeleteError("");
       ownerSignInBtn.disabled = true;
       ownerSignInBtn.textContent = "Opening Google sign-in…";
       var provider = new firebase.auth.GoogleAuthProvider();
-      /* Redirect sign-in, not a popup: the page goes to Google and
-         comes back, which works in mobile browsers where popups are
-         blocked or stripped. The result is collected by the
-         getRedirectResult call above when the page loads again. */
-      auth.signInWithRedirect(provider).catch(function(){
-        ownerSignInBtn.disabled = false;
-        ownerSignInBtn.textContent = "Admin sign in";
-        setDeleteError("Admin sign-in could not be started. Please try again.");
+      provider.setCustomParameters({ prompt: "select_account" });
+      /* Popup sign-in: the result comes straight back to this page,
+         so the owner is recognised the moment Google confirms —
+         no redirect round-trip for the session to get lost in. */
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
+        return auth.signInWithPopup(provider);
+      }).then(function(result){
+        resetSignInBtn();
+        if (result && result.user) {
+          applySignedInUser(result.user);
+          noteNonOwner(result.user);
+        }
+      }).catch(function(err){
+        var code = err && err.code ? err.code : "";
+        if (code === "auth/popup-blocked" ||
+            code === "auth/cancelled-popup-request" ||
+            code === "auth/operation-not-supported-in-this-environment") {
+          /* This browser will not allow the popup at all: fall back
+             to the redirect flow, whose result the getRedirectResult
+             call above collects when the page comes back. */
+          startRedirectSignIn(provider);
+          return;
+        }
+        resetSignInBtn();
+        if (code === "auth/popup-closed-by-user") {
+          setDeleteError("Google sign-in was closed before it finished. Tap Admin sign in to try again.");
+        } else {
+          setDeleteError("Admin sign-in could not be completed. Please try again.");
+        }
       });
     });
   }
